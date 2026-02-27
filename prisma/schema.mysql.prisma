@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String?
+  email          String          @unique
+  password       String?
+  image          String?
+  role           String          @default("FAN")
+  favoriteTeam   String?
+  city           String?
+  reservierungen Reservierung[]
+  bewertungen    Bewertung[]
+  favoriten      Favorit[]
+  bar            Bar?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Bar {
+  id               String          @id @default(cuid())
+  name             String
+  slug             String          @unique
+  beschreibung     String?         @db.Text
+  adresse          String
+  stadt            String
+  plz              String
+  latitude         Float?
+  longitude        Float?
+  telefon          String?
+  website          String?
+  bildUrl          String?
+  kapazitaet       Int             @default(50)
+  hatReservierung  Boolean         @default(true)
+  hatLeinwand      Boolean         @default(true)
+  hatBeamer        Boolean         @default(false)
+  biergarten       Boolean         @default(false)
+  oeffnungszeiten  String?         @db.Text
+  ownerId          String          @unique
+  owner            User            @relation(fields: [ownerId], references: [id])
+  spiele           BarSpiel[]
+  reservierungen   Reservierung[]
+  promoDeals       PromoDeal[]
+  fotos            BarFoto[]
+  bewertungenListe Bewertung[]
+  favoriten        Favorit[]
+  bewertungen      Float           @default(0)
+  bewertungAnzahl  Int             @default(0)
+  premiumTier      String          @default("BASIC")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([stadt])
+  @@index([plz])
+  @@index([premiumTier])
+}
+
+model Spiel {
+  id         String     @id @default(cuid())
+  externalId String?    @unique
+  heimTeam   String
+  gastTeam   String
+  liga       String
+  saison     String?
+  spieltag   Int?
+  anpfiff    DateTime
+  tvSender   String?
+  status     String     @default("GEPLANT")
+  ergebnis   String?
+  bars       BarSpiel[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @default(now()) @updatedAt
+
+  @@index([anpfiff])
+  @@index([liga])
+  @@index([externalId])
+}
+
+model BarSpiel {
+  id      String  @id @default(cuid())
+  bar     Bar     @relation(fields: [barId], references: [id])
+  barId   String
+  spiel   Spiel   @relation(fields: [spielId], references: [id])
+  spielId String
+  hatTon  Boolean @default(true)
+  plaetze Int?
+
+  @@unique([barId, spielId])
+  @@index([barId])
+  @@index([spielId])
+}
+
+model Reservierung {
+  id          String   @id @default(cuid())
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?
+  bar         Bar      @relation(fields: [barId], references: [id])
+  barId       String
+  datum       DateTime
+  personen    Int
+  status      String   @default("AUSSTEHEND")
+  notiz       String?  @db.Text
+  gastName    String?
+  gastTelefon String?
+  quelle      String   @default("ONLINE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([barId])
+  @@index([status])
+  @@index([datum])
+}
+
+model PromoDeal {
+  id              String         @id @default(cuid())
+  bar             Bar            @relation(fields: [barId], references: [id])
+  barId           String
+  titel           String
+  beschreibung    String?        @db.Text
+  preis           Float
+  originalPreis   Float?
+  maxPlaetze      Int
+  gebuchtePlaetze Int            @default(0)
+  spielTag        DateTime?
+  gueltigVon      DateTime
+  gueltigBis      DateTime
+  bildUrl         String?
+  aktiv           Boolean        @default(true)
+  buchungen       PromoBuchung[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([barId])
+  @@index([aktiv])
+  @@index([gueltigBis])
+}
+
+model PromoBuchung {
+  id              String    @id @default(cuid())
+  promoDeal       PromoDeal @relation(fields: [promoDealId], references: [id])
+  promoDealId     String
+  userId          String
+  personen        Int
+  gesamtPreis     Float
+  provision       Float     @default(0)
+  barAnteil       Float     @default(0)
+  stripeSessionId String?
+  stripePaymentId String?
+  bezahlStatus    String    @default("AUSSTEHEND")
+  auszahlStatus   String    @default("AUSSTEHEND")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([promoDealId])
+  @@index([userId])
+  @@index([bezahlStatus])
+}
+
+model BarFoto {
+  id        String   @id @default(cuid())
+  bar       Bar      @relation(fields: [barId], references: [id])
+  barId     String
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([barId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+}
+
+model Bewertung {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  bar       Bar      @relation(fields: [barId], references: [id])
+  barId     String
+  sterne    Int
+  kommentar String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, barId])
+  @@index([barId])
+}
+
+model Favorit {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  bar       Bar      @relation(fields: [barId], references: [id])
+  barId     String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, barId])
+  @@index([userId])
+  @@index([barId])
+}

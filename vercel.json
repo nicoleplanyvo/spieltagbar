@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/spielplan?secret=${CRON_SECRET}",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/erinnerungen?secret=${CRON_SECRET}",
+      "schedule": "0 10 * * *"
+    }
+  ]
+}

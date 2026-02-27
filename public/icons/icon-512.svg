@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="102" fill="#1A1A2E"/>
+    <circle cx="204.8" cy="230.4" r="112.64" fill="#00D26A"/>
+    <text x="256" y="435.2" font-family="sans-serif" font-size="76.8" font-weight="bold" fill="white" text-anchor="middle">STB</text>
+  </svg>
