@@ -8,7 +8,15 @@ export const metadata: Metadata = {
 };
 
 async function getSpiele() {
+  // Nur Spiele der letzten 4 Tage + zukünftige anzeigen
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 4);
+  cutoff.setHours(0, 0, 0, 0);
+
   return prisma.spiel.findMany({
+    where: {
+      anpfiff: { gte: cutoff },
+    },
     include: {
       bars: {
         include: { bar: { select: { id: true, name: true, stadt: true } } },

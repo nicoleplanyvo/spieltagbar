@@ -9,9 +9,12 @@ export async function GET(req: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
-    // Nur kommende Spiele (Standard) oder alle
+    // Standard: Spiele der letzten 4 Tage + zukünftige. includeAll=true zeigt alles.
     if (!includeAll) {
-      where.anpfiff = { gte: new Date() };
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 4);
+      cutoff.setHours(0, 0, 0, 0);
+      where.anpfiff = { gte: cutoff };
     }
 
     // Liga-Filter
