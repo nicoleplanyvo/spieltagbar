@@ -17,15 +17,20 @@ import {
 } from "lucide-react";
 
 async function getUpcomingSpiele() {
+  // Aktuellen Spieltag einschließen: Spiele der letzten 4 Tage + zukünftige
+  const spieltagStart = new Date();
+  spieltagStart.setDate(spieltagStart.getDate() - 4);
+  spieltagStart.setHours(0, 0, 0, 0);
+
   return prisma.spiel.findMany({
     where: {
-      anpfiff: { gte: new Date() },
+      anpfiff: { gte: spieltagStart },
     },
     include: {
       bars: true,
     },
     orderBy: { anpfiff: "asc" },
-    take: 6,
+    take: 9,
   });
 }
 
