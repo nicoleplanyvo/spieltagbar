@@ -31,6 +31,7 @@ const FOOTBALL_DATA_BASE = "https://api.football-data.org/v4";
 
 // Competition Codes für football-data.org
 const FOOTBALL_DATA_LIGEN: Record<string, { code: string; name: string }> = {
+  bl1_fd: { code: "BL1", name: "Bundesliga" },
   ucl: { code: "CL", name: "Champions League" },
   uel: { code: "ELC", name: "Europa League" },
   uecl: { code: "ECL", name: "Conference League" },
