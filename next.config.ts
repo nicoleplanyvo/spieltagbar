@@ -39,9 +39,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // output: "standalone" — wird fuer Plesk-Deployment aktiviert (siehe deploy.sh)
-  // Im lokalen Dev nicht noetig
-  output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
+  // Standalone Output fuer Plesk/Server Deployment
+  output: "standalone",
   turbopack: {
     root: __dirname,
   },

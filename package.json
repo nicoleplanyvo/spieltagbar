@@ -9,7 +9,12 @@
     "lint": "eslint",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:migrate": "npx prisma migrate dev",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "deploy:schema": "node -e \"require('fs').copyFileSync('prisma/schema.mysql.prisma','prisma/schema.prisma');console.log('MySQL schema activated')\"",
+    "deploy:prisma": "npx prisma generate && npx prisma db push --accept-data-loss",
+    "deploy:build": "next build",
+    "deploy:static": "node -e \"const fs=require('fs'),p=require('path');function cpR(s,d){if(!fs.existsSync(s))return;fs.mkdirSync(d,{recursive:true});fs.readdirSync(s).forEach(f=>{const sp=p.join(s,f),dp=p.join(d,f);fs.statSync(sp).isDirectory()?cpR(sp,dp):fs.copyFileSync(sp,dp)})};cpR('public','.next/standalone/public');cpR('.next/static','.next/standalone/.next/static');console.log('Static files copied')\"",
+    "deploy:all": "npm run deploy:schema && npm run deploy:prisma && npm run deploy:build && npm run deploy:static"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
