@@ -107,7 +107,9 @@ export async function syncOpenLigaDB(
       for (const match of matches) {
         const externalId = `openliga_${match.matchID}`;
         const status = match.matchIsFinished ? "BEENDET" : "GEPLANT";
-        const endResult = match.matchResults?.find((r) => r.resultTypeID === 2);
+        // Endergebnis: resultTypeID 2 = Endergebnis, 1 = Halbzeit — Fallback auf letztes verfügbares
+        const endResult = match.matchResults?.find((r) => r.resultTypeID === 2)
+          || match.matchResults?.sort((a, b) => b.resultTypeID - a.resultTypeID)[0];
         const ergebnis = endResult
           ? `${endResult.pointsTeam1}:${endResult.pointsTeam2}`
           : null;
