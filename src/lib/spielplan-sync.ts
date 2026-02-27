@@ -225,6 +225,13 @@ export async function syncFootballData(
             ? `${match.score.fullTime.home}:${match.score.fullTime.away}`
             : null;
 
+        // Teams ermitteln (KO-Runden können null sein)
+        const heimTeam = match.homeTeam.shortName || match.homeTeam.name || "TBD";
+        const gastTeam = match.awayTeam.shortName || match.awayTeam.name || "TBD";
+
+        // Spiele ohne Teams überspringen (noch nicht ausgelost)
+        if (heimTeam === "TBD" && gastTeam === "TBD") continue;
+
         try {
           const existing = await prisma.spiel.findUnique({
             where: { externalId },
@@ -237,6 +244,8 @@ export async function syncFootballData(
                 anpfiff: new Date(match.utcDate),
                 status,
                 ergebnis,
+                heimTeam,
+                gastTeam,
               },
             });
             result.updated++;
@@ -244,8 +253,8 @@ export async function syncFootballData(
             await prisma.spiel.create({
               data: {
                 externalId,
-                heimTeam: match.homeTeam.shortName || match.homeTeam.name,
-                gastTeam: match.awayTeam.shortName || match.awayTeam.name,
+                heimTeam,
+                gastTeam,
                 liga: liga.name,
                 spieltag: match.matchday,
                 anpfiff: new Date(match.utcDate),
