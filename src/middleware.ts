@@ -13,9 +13,9 @@ export default auth((req) => {
 
     // Nur Same-Origin-Requests erlauben (plus Stripe Webhooks)
     if (requestOrigin && requestOrigin !== origin) {
-      // Stripe Webhook darf von extern kommen
-      if (pathname === "/api/webhook/stripe") {
-        // Stripe-Anfragen passieren lassen — Signatur wird im Handler geprueft
+      // Externe Webhooks passieren lassen (Signatur/Secret wird im Handler geprueft)
+      if (pathname === "/api/webhook/stripe" || pathname === "/api/deploy") {
+        // Webhook-Anfragen passieren lassen
       } else {
         return NextResponse.json(
           { error: "Nicht erlaubt (CORS)" },
