@@ -130,19 +130,6 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <div className="mt-6 p-4 bg-[#1A1A2E]/5 rounded-lg">
-          <p className="text-xs text-gray-500 text-center mb-2">
-            Demo-Zugangsdaten:
-          </p>
-          <div className="text-xs text-gray-600 space-y-1 text-center">
-            <p>
-              Fan: <code className="bg-white px-1 rounded">max@example.com</code> / <code className="bg-white px-1 rounded">test1234</code>
-            </p>
-            <p>
-              Bar-Owner: <code className="bg-white px-1 rounded">tom@sportsbar.de</code> / <code className="bg-white px-1 rounded">test1234</code>
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
