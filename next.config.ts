@@ -39,8 +39,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Standalone Output fuer Plesk/Server Deployment
-  output: "standalone",
   turbopack: {
     root: __dirname,
   },
