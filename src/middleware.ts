@@ -60,6 +60,7 @@ export default auth((req) => {
     "/api/reservierungen",
     "/api/bewertungen",
     "/api/checkout",
+    "/api/admin",
   ];
   const isProtectedApi = protectedApiRoutes.some((route) => pathname.startsWith(route));
 

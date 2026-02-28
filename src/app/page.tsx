@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { TeamBadge } from "@/components/spiele/TeamBadge";
 import {
   Search,
@@ -14,6 +15,7 @@ import {
   ArrowRight,
   Clock,
   Zap,
+  LayoutDashboard,
 } from "lucide-react";
 
 async function getUpcomingSpiele() {
@@ -60,10 +62,13 @@ function formatTime(date: Date) {
 }
 
 export default async function Home() {
-  const [spiele, bars] = await Promise.all([
+  const [spiele, bars, session] = await Promise.all([
     getUpcomingSpiele(),
     getFeaturedBars(),
+    auth(),
   ]);
+
+  const isLoggedIn = !!session?.user;
 
   return (
     <div>
@@ -282,25 +287,52 @@ export default async function Home() {
             BEREIT FÜR DEN NÄCHSTEN SPIELTAG?
           </h2>
           <p className="text-white/80 mb-6 max-w-md mx-auto">
-            Kostenlos registrieren und nie wieder das Spiel verpassen.
+            {isLoggedIn
+              ? "Finde dein nächstes Spiel und reserviere deinen Platz."
+              : "Kostenlos registrieren und nie wieder das Spiel verpassen."}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/register">
-              <Button
-                size="lg"
-                className="bg-white text-[#00B85C] hover:bg-white/90 px-8 py-6 w-full sm:w-auto font-semibold hover:scale-105 transition-transform"
-              >
-                Jetzt starten
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button
-                size="lg"
-                className="bg-white/10 border-2 border-white/30 text-white hover:bg-white/20 px-8 py-6 w-full sm:w-auto hover:scale-105 transition-transform"
-              >
-                Bar eintragen
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link href="/spiele">
+                  <Button
+                    size="lg"
+                    className="bg-white text-[#00B85C] hover:bg-white/90 px-8 py-6 w-full sm:w-auto font-semibold hover:scale-105 transition-transform"
+                  >
+                    <CalendarDays className="mr-2 h-5 w-5" />
+                    Spielplan ansehen
+                  </Button>
+                </Link>
+                <Link href="/dashboard">
+                  <Button
+                    size="lg"
+                    className="bg-white/10 border-2 border-white/30 text-white hover:bg-white/20 px-8 py-6 w-full sm:w-auto hover:scale-105 transition-transform"
+                  >
+                    <LayoutDashboard className="mr-2 h-5 w-5" />
+                    Mein Dashboard
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/register">
+                  <Button
+                    size="lg"
+                    className="bg-white text-[#00B85C] hover:bg-white/90 px-8 py-6 w-full sm:w-auto font-semibold hover:scale-105 transition-transform"
+                  >
+                    Jetzt starten
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button
+                    size="lg"
+                    className="bg-white/10 border-2 border-white/30 text-white hover:bg-white/20 px-8 py-6 w-full sm:w-auto hover:scale-105 transition-transform"
+                  >
+                    Bar eintragen
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

@@ -43,9 +43,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, logs, duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s` }, { status: 500 });
     }
 
-    // 3. Prisma generate
+    // 3. Prisma generate (Prisma@6 wegen Breaking Changes in v7)
     try {
-      await execAsync("npx prisma generate", { cwd, timeout: 30000 });
+      await execAsync("npx prisma@6 generate", { cwd, timeout: 30000 });
       logs.push("✅ Prisma generate: fertig");
     } catch (e) {
       logs.push(`⚠️ Prisma generate: ${e instanceof Error ? e.message : "Fehler"}`);
