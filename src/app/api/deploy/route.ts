@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { existsSync } from "fs";
+import { join } from "path";
 
 const execAsync = promisify(exec);
+
+const REPO_URL = "https://github.com/nicoleplanyvo/spieltagbar.git";
 
 /**
  * Deploy Webhook — wird von GitHub Webhook aufgerufen
  *
  * GitHub Webhook URL: https://spieltagbar.de/api/deploy?secret=DEIN_CRON_SECRET
  *
- * Führt aus: git pull → npm install → build → static copy
- * Die App muss danach in Plesk manuell oder per PM2 neugestartet werden.
+ * 1. Git init (falls noetig) + fetch + reset --hard
+ * 2. npm install
+ * 3. Prisma generate
+ * 4. Next.js Build
+ * 5. Static Files kopieren
  */
 export async function POST(req: Request) {
   const secret =
@@ -26,15 +33,32 @@ export async function POST(req: Request) {
     const cwd = process.cwd();
     const logs: string[] = [];
 
-    // 1. Git Pull
-    try {
-      const { stdout } = await execAsync("git pull origin main", { cwd, timeout: 30000 });
-      logs.push(`✅ Git Pull: ${stdout.trim()}`);
-    } catch (e) {
-      logs.push(`⚠️ Git Pull: ${e instanceof Error ? e.message : "Fehler"}`);
+    // 1. Git Setup (falls kein Repo vorhanden)
+    const gitDir = join(cwd, ".git");
+
+    if (!existsSync(gitDir)) {
+      try {
+        await execAsync(
+          `git init && git remote add origin ${REPO_URL}`,
+          { cwd, timeout: 15000 }
+        );
+        logs.push("✅ Git initialisiert + Remote gesetzt");
+      } catch (e) {
+        logs.push(`⚠️ Git init: ${e instanceof Error ? e.message : "Fehler"}`);
+      }
     }
 
-    // 2. npm install
+    // 2. Neuesten Code von GitHub holen
+    try {
+      await execAsync("git fetch origin main", { cwd, timeout: 60000 });
+      const { stdout } = await execAsync("git reset --hard origin/main", { cwd, timeout: 15000 });
+      logs.push(`✅ Git: ${stdout.trim()}`);
+    } catch (e) {
+      logs.push(`⚠️ Git fetch/reset: ${e instanceof Error ? e.message : "Fehler"}`);
+      // Weiter machen — vielleicht ist der Code schon aktuell
+    }
+
+    // 3. npm install
     try {
       const { stdout } = await execAsync("npm install --production=false", { cwd, timeout: 120000 });
       logs.push(`✅ npm install: fertig (${stdout.split("\n").length} Zeilen)`);
@@ -43,7 +67,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, logs, duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s` }, { status: 500 });
     }
 
-    // 3. Prisma generate (Prisma@6 wegen Breaking Changes in v7)
+    // 4. Prisma generate (Prisma@6 wegen Breaking Changes in v7)
     try {
       await execAsync("npx prisma@6 generate", { cwd, timeout: 30000 });
       logs.push("✅ Prisma generate: fertig");
@@ -51,7 +75,7 @@ export async function POST(req: Request) {
       logs.push(`⚠️ Prisma generate: ${e instanceof Error ? e.message : "Fehler"}`);
     }
 
-    // 4. Next.js Build
+    // 5. Next.js Build
     try {
       await execAsync("npx next build", { cwd, timeout: 300000 }); // 5 min timeout
       logs.push("✅ Next.js Build: fertig");
@@ -60,7 +84,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, logs, duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s` }, { status: 500 });
     }
 
-    // 5. Static Files kopieren
+    // 6. Static Files kopieren
     try {
       await execAsync(
         'cp -r public .next/standalone/ 2>/dev/null; cp -r .next/static .next/standalone/.next/ 2>/dev/null || true',
@@ -72,7 +96,7 @@ export async function POST(req: Request) {
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    logs.push(`\n🎉 Deploy abgeschlossen in ${duration}s — App-Neustart nötig!`);
+    logs.push(`\n🎉 Deploy abgeschlossen in ${duration}s — App-Neustart noetig!`);
 
     return NextResponse.json({ success: true, logs, duration: `${duration}s` });
   } catch (error) {
