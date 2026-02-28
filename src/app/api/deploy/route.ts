@@ -84,19 +84,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, logs, duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s` }, { status: 500 });
     }
 
-    // 6. Static Files kopieren
+    // 6. App-Neustart via Phusion Passenger (touch tmp/restart.txt)
     try {
-      await execAsync(
-        'cp -r public .next/standalone/ 2>/dev/null; cp -r .next/static .next/standalone/.next/ 2>/dev/null || true',
-        { cwd, timeout: 15000 }
-      );
-      logs.push("✅ Static Files kopiert");
+      await execAsync("mkdir -p tmp && touch tmp/restart.txt", { cwd, timeout: 5000 });
+      logs.push("✅ App-Neustart ausgeloest (tmp/restart.txt)");
     } catch (e) {
-      logs.push(`⚠️ Static copy: ${e instanceof Error ? e.message : "Fehler"}`);
+      logs.push(`⚠️ Neustart: ${e instanceof Error ? e.message : "Fehler"}`);
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    logs.push(`\n🎉 Deploy abgeschlossen in ${duration}s — App-Neustart noetig!`);
+    logs.push(`\n🎉 Deploy abgeschlossen in ${duration}s`);
 
     return NextResponse.json({ success: true, logs, duration: `${duration}s` });
   } catch (error) {
