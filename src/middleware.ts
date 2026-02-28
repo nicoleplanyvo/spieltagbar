@@ -60,7 +60,6 @@ export default auth((req) => {
     "/api/reservierungen",
     "/api/bewertungen",
     "/api/checkout",
-    "/api/admin",
   ];
   const isProtectedApi = protectedApiRoutes.some((route) => pathname.startsWith(route));
 
@@ -71,9 +70,9 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Eingeloggt → von Auth-Seiten zum Dashboard redirecten
+  // Eingeloggt → von Auth-Seiten zur Homepage redirecten
   if (isAuthRoute && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", origin));
+    return NextResponse.redirect(new URL("/", origin));
   }
 
   // Geschuetzte API ohne Auth → 401
