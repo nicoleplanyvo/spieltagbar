@@ -10,7 +10,12 @@ import type { NextRequest } from "next/server";
  */
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const origin = req.nextUrl.origin;
+
+  // Tatsaechliche Site-Origin ermitteln (hinter Reverse-Proxy wie Passenger
+  // gibt req.nextUrl.origin z.B. http://localhost:3000 zurueck, nicht die echte Domain)
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
+  const protocol = req.headers.get("x-forwarded-proto") || "https";
+  const siteOrigin = host ? `${protocol}://${host}` : req.nextUrl.origin;
 
   // --- CORS-Schutz fuer API-Routen ---
   if (pathname.startsWith("/api/")) {
@@ -18,7 +23,7 @@ export function middleware(req: NextRequest) {
     const response = NextResponse.next();
 
     // Nur Same-Origin-Requests erlauben (plus Webhooks)
-    if (requestOrigin && requestOrigin !== origin) {
+    if (requestOrigin && requestOrigin !== siteOrigin) {
       // Externe Webhooks passieren lassen (Signatur/Secret wird im Handler geprueft)
       if (pathname === "/api/webhook/stripe" || pathname === "/api/deploy") {
         // Webhook-Anfragen passieren lassen
@@ -31,7 +36,7 @@ export function middleware(req: NextRequest) {
     }
 
     // CORS-Header fuer erlaubte Anfragen
-    response.headers.set("Access-Control-Allow-Origin", origin);
+    response.headers.set("Access-Control-Allow-Origin", siteOrigin);
     response.headers.set(
       "Access-Control-Allow-Methods",
       "GET, POST, PATCH, DELETE, OPTIONS"
@@ -101,14 +106,14 @@ export function middleware(req: NextRequest) {
 
   // Nicht eingeloggt → zu Login redirecten
   if (isProtected && !isLoggedIn) {
-    const loginUrl = new URL("/login", origin);
+    const loginUrl = new URL("/login", siteOrigin);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // Eingeloggt → von Auth-Seiten zur Homepage redirecten
   if (isAuthRoute && isLoggedIn) {
-    return NextResponse.redirect(new URL("/", origin));
+    return NextResponse.redirect(new URL("/", siteOrigin));
   }
 
   return NextResponse.next();
