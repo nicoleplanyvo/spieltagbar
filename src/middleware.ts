@@ -1,9 +1,15 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default auth((req) => {
+/**
+ * Middleware OHNE auth()-Wrapper — nutzt Cookie-Pruefung statt NextAuth.
+ * Dadurch crasht die Middleware nicht wenn NEXTAUTH_SECRET fehlt oder
+ * die Auth-Konfiguration fehlerhaft ist.
+ *
+ * Die eigentliche JWT-Validierung passiert in den Seiten/API-Routen selbst.
+ */
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isLoggedIn = !!req.auth;
   const origin = req.nextUrl.origin;
 
   // --- CORS-Schutz fuer API-Routen ---
@@ -11,7 +17,7 @@ export default auth((req) => {
     const requestOrigin = req.headers.get("origin");
     const response = NextResponse.next();
 
-    // Nur Same-Origin-Requests erlauben (plus Stripe Webhooks)
+    // Nur Same-Origin-Requests erlauben (plus Webhooks)
     if (requestOrigin && requestOrigin !== origin) {
       // Externe Webhooks passieren lassen (Signatur/Secret wird im Handler geprueft)
       if (pathname === "/api/webhook/stripe" || pathname === "/api/deploy") {
@@ -26,8 +32,14 @@ export default auth((req) => {
 
     // CORS-Header fuer erlaubte Anfragen
     response.headers.set("Access-Control-Allow-Origin", origin);
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    response.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PATCH, DELETE, OPTIONS"
+    );
+    response.headers.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
     response.headers.set("Access-Control-Max-Age", "86400");
 
     // OPTIONS Pre-flight Requests sofort beantworten
@@ -37,31 +49,55 @@ export default auth((req) => {
         headers: response.headers,
       });
     }
+
+    // Geschuetzte API-Routen — einfache Cookie-Pruefung
+    const protectedApiRoutes = [
+      "/api/bars/profil",
+      "/api/bars/fotos",
+      "/api/bars/spiele",
+      "/api/bars/promos",
+      "/api/bars/reservierungen",
+      "/api/bars/create",
+      "/api/reservierungen",
+      "/api/bewertungen",
+      "/api/checkout",
+    ];
+    const isProtectedApi = protectedApiRoutes.some((route) =>
+      pathname.startsWith(route)
+    );
+
+    if (isProtectedApi) {
+      const sessionToken =
+        req.cookies.get("__Secure-authjs.session-token") ||
+        req.cookies.get("authjs.session-token");
+      if (!sessionToken?.value) {
+        return NextResponse.json(
+          { error: "Nicht authentifiziert" },
+          { status: 401 }
+        );
+      }
+    }
+
+    return response;
   }
 
-  // --- Route Protection ---
+  // --- Route Protection (Cookie-basiert, kein auth()-Aufruf) ---
+
+  // Session-Cookie pruefen (lightweight — kein JWT-Decode noetig)
+  const sessionToken =
+    req.cookies.get("__Secure-authjs.session-token") ||
+    req.cookies.get("authjs.session-token");
+  const isLoggedIn = !!sessionToken?.value;
 
   // Geschuetzte Routen: Dashboard
   const protectedRoutes = ["/dashboard"];
-  const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
+  const isProtected = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
 
   // Auth-Seiten (Login/Register) — eingeloggte User redirecten
   const authRoutes = ["/login", "/register"];
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
-
-  // Geschuetzte API-Routen
-  const protectedApiRoutes = [
-    "/api/bars/profil",
-    "/api/bars/fotos",
-    "/api/bars/spiele",
-    "/api/bars/promos",
-    "/api/bars/reservierungen",
-    "/api/bars/create",
-    "/api/reservierungen",
-    "/api/bewertungen",
-    "/api/checkout",
-  ];
-  const isProtectedApi = protectedApiRoutes.some((route) => pathname.startsWith(route));
 
   // Nicht eingeloggt → zu Login redirecten
   if (isProtected && !isLoggedIn) {
@@ -75,16 +111,8 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/", origin));
   }
 
-  // Geschuetzte API ohne Auth → 401
-  if (isProtectedApi && !isLoggedIn) {
-    return NextResponse.json(
-      { error: "Nicht authentifiziert" },
-      { status: 401 }
-    );
-  }
-
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

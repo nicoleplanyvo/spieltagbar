@@ -19,8 +19,12 @@ export async function GET(req: Request) {
     env: {
       NODE_ENV: process.env.NODE_ENV,
       NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? "***set***" : "⚠️ MISSING — Auth wird nicht funktionieren!",
+      AUTH_SECRET: process.env.AUTH_SECRET ? "***set***" : "nicht gesetzt",
       DATABASE_URL: process.env.DATABASE_URL ? "***set***" : "MISSING",
       CRON_SECRET: process.env.CRON_SECRET ? "***set***" : "MISSING",
+      SMTP_HOST: process.env.SMTP_HOST || "nicht gesetzt",
+      SMTP_USER: process.env.SMTP_USER || "nicht gesetzt",
     },
   };
 
