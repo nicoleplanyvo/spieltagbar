@@ -11,50 +11,10 @@ import type { NextRequest } from "next/server";
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Tatsaechliche Site-Origin ermitteln (hinter Reverse-Proxy wie Passenger
-  // gibt req.nextUrl.origin z.B. http://localhost:3000 zurueck, nicht die echte Domain)
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
-  const protocol = req.headers.get("x-forwarded-proto") || "https";
-  const siteOrigin = host ? `${protocol}://${host}` : req.nextUrl.origin;
-
-  // --- CORS-Schutz fuer API-Routen ---
+  // --- API-Routen: nur Auth-Pruefung, KEIN CORS-Blocking ---
+  // CORS ist bei Same-Origin nicht noetig. Der Browser schuetzt bereits
+  // mit der Same-Origin Policy. NextAuth hat eigenen CSRF-Schutz.
   if (pathname.startsWith("/api/")) {
-    const requestOrigin = req.headers.get("origin");
-    const response = NextResponse.next();
-
-    // Nur Same-Origin-Requests erlauben (plus Webhooks)
-    if (requestOrigin && requestOrigin !== siteOrigin) {
-      // Externe Webhooks passieren lassen (Signatur/Secret wird im Handler geprueft)
-      if (pathname === "/api/webhook/stripe" || pathname === "/api/deploy") {
-        // Webhook-Anfragen passieren lassen
-      } else {
-        return NextResponse.json(
-          { error: "Nicht erlaubt (CORS)" },
-          { status: 403 }
-        );
-      }
-    }
-
-    // CORS-Header fuer erlaubte Anfragen
-    response.headers.set("Access-Control-Allow-Origin", siteOrigin);
-    response.headers.set(
-      "Access-Control-Allow-Methods",
-      "GET, POST, PATCH, DELETE, OPTIONS"
-    );
-    response.headers.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
-    );
-    response.headers.set("Access-Control-Max-Age", "86400");
-
-    // OPTIONS Pre-flight Requests sofort beantworten
-    if (req.method === "OPTIONS") {
-      return new NextResponse(null, {
-        status: 204,
-        headers: response.headers,
-      });
-    }
-
     // Geschuetzte API-Routen — einfache Cookie-Pruefung
     const protectedApiRoutes = [
       "/api/bars/profil",
@@ -83,7 +43,7 @@ export function middleware(req: NextRequest) {
       }
     }
 
-    return response;
+    return NextResponse.next();
   }
 
   // --- Route Protection (Cookie-basiert, kein auth()-Aufruf) ---
@@ -106,14 +66,17 @@ export function middleware(req: NextRequest) {
 
   // Nicht eingeloggt → zu Login redirecten
   if (isProtected && !isLoggedIn) {
-    const loginUrl = new URL("/login", siteOrigin);
+    const loginUrl = req.nextUrl.clone();
+    loginUrl.pathname = "/login";
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // Eingeloggt → von Auth-Seiten zur Homepage redirecten
   if (isAuthRoute && isLoggedIn) {
-    return NextResponse.redirect(new URL("/", siteOrigin));
+    const homeUrl = req.nextUrl.clone();
+    homeUrl.pathname = "/";
+    return NextResponse.redirect(homeUrl);
   }
 
   return NextResponse.next();
