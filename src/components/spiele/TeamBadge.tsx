@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { getTeamBadge } from "@/lib/teams";
 
 interface TeamBadgeProps {
@@ -28,13 +27,15 @@ export function TeamBadge({
   return (
     <span className="inline-flex items-center gap-1.5">
       {badge?.type === "logo" ? (
-        <Image
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
           src={badge.url}
           alt={team}
           width={s.img}
           height={s.img}
           className="object-contain flex-shrink-0"
-          unoptimized
+          referrerPolicy="no-referrer"
+          loading="lazy"
         />
       ) : badge?.type === "flag" ? (
         <span className={`${s.flag} leading-none flex-shrink-0`}>

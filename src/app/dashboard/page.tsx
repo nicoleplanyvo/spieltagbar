@@ -12,25 +12,9 @@ import {
   Clock,
   ArrowRight,
   User,
-  Tv,
   Search,
 } from "lucide-react";
-import { TeamBadge } from "@/components/spiele/TeamBadge";
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("de-DE", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(date);
-}
-
-function formatTime(date: Date) {
-  return new Intl.DateTimeFormat("de-DE", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
+import { SpieleFilter } from "@/components/dashboard/SpieleFilter";
 
 function formatDateFull(date: Date) {
   return new Intl.DateTimeFormat("de-DE", {
@@ -73,6 +57,10 @@ export default async function DashboardPage() {
     redirect("/dashboard/bar");
   }
 
+  // Heute ab 00:00 — zeigt heutige abgelaufene + zukuenftige Spiele
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   const [reservierungen, spiele] = await Promise.all([
     prisma.reservierung.findMany({
       where: { userId: user.id },
@@ -80,10 +68,10 @@ export default async function DashboardPage() {
       orderBy: { datum: "desc" },
     }),
     prisma.spiel.findMany({
-      where: { anpfiff: { gte: new Date() } },
+      where: { anpfiff: { gte: todayStart } },
       include: { bars: true },
       orderBy: { anpfiff: "asc" },
-      take: 6,
+      take: 30,
     }),
   ]);
 
@@ -136,55 +124,12 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          {spiele.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {spiele.map((spiel) => (
-                <Card key={spiel.id} className="bg-white hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="secondary" className="text-xs bg-[#1A1A2E]/5 text-[#1A1A2E]">
-                        {spiel.liga}
-                      </Badge>
-                      {spiel.tvSender && (
-                        <span className="flex items-center gap-1 text-xs text-gray-500">
-                          <Tv className="h-3 w-3" />
-                          {spiel.tvSender}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-center py-1.5 space-y-1">
-                      <p className="font-semibold text-[#1A1A2E] text-sm flex items-center justify-center">
-                        <TeamBadge team={spiel.heimTeam} liga={spiel.liga} size="sm" nameClass="font-semibold text-[#1A1A2E] text-sm" />
-                      </p>
-                      <p className="text-xs text-gray-400">vs</p>
-                      <p className="font-semibold text-[#1A1A2E] text-sm flex items-center justify-center">
-                        <TeamBadge team={spiel.gastTeam} liga={spiel.liga} size="sm" nameClass="font-semibold text-[#1A1A2E] text-sm" />
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t text-xs">
-                      <span className="flex items-center gap-1 text-gray-500">
-                        <Clock className="h-3 w-3" />
-                        {formatDate(spiel.anpfiff)}, {formatTime(spiel.anpfiff)}
-                      </span>
-                      <Link
-                        href="/bars"
-                        className="flex items-center gap-1 text-[#00D26A] font-medium hover:underline"
-                      >
-                        <MapPin className="h-3 w-3" />
-                        {spiel.bars.length} Bars
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="bg-white">
-              <CardContent className="p-6 text-center text-gray-500 text-sm">
-                Aktuell keine kommenden Spiele im System.
-              </CardContent>
-            </Card>
-          )}
+          <SpieleFilter
+            spiele={spiele.map((s) => ({
+              ...s,
+              anpfiff: s.anpfiff.toISOString(),
+            }))}
+          />
         </div>
 
         {/* Meine Reservierungen */}

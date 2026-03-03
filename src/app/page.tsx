@@ -19,20 +19,19 @@ import {
 } from "lucide-react";
 
 async function getUpcomingSpiele() {
-  // Aktuellen Spieltag einschließen: Spiele der letzten 4 Tage + zukünftige
-  const spieltagStart = new Date();
-  spieltagStart.setDate(spieltagStart.getDate() - 4);
-  spieltagStart.setHours(0, 0, 0, 0);
+  // Nur heutige + zukuenftige Spiele
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
 
   return prisma.spiel.findMany({
     where: {
-      anpfiff: { gte: spieltagStart },
+      anpfiff: { gte: todayStart },
     },
     include: {
       bars: true,
     },
     orderBy: { anpfiff: "asc" },
-    take: 9,
+    take: 12,
   });
 }
 
@@ -40,6 +39,8 @@ async function getFeaturedBars() {
   return prisma.bar.findMany({
     where: {
       premiumTier: { in: ["PREMIUM", "TOP"] },
+      // Demo-Bars ausschliessen
+      NOT: { name: { contains: "[DEMO]" } },
     },
     orderBy: { bewertungen: "desc" },
     take: 3,
@@ -214,70 +215,72 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Featured Bars */}
-      <section className="py-10 sm:py-14 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl tracking-wider text-gradient-gold">
-              TOP BARS
-            </h2>
-            <Link href="/bars" className="hidden sm:block">
-              <Button variant="outline" size="sm" className="group">
-                Alle Bars
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {bars.map((bar, i) => (
-              <Link key={bar.id} href={`/bars/${bar.id}`}>
-                <Card className="border card-premium bg-white h-full animate-fade-up" style={{ animationDelay: `${i * 100}ms` }}>
-                  <CardContent className="p-0">
-                    <div className="h-40 bg-gradient-to-br from-[#1A1A2E] to-[#242438] rounded-t-lg flex items-center justify-center pitch-pattern">
-                      <span className="font-[family-name:var(--font-display)] text-2xl text-white/20 tracking-wider">
-                        {bar.name}
-                      </span>
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-semibold text-[#1A1A2E]">
-                            {bar.name}
-                          </h3>
-                          <p className="flex items-center gap-1 text-sm text-gray-500">
-                            <MapPin className="h-3.5 w-3.5" />
-                            {bar.stadt}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-[#F5A623] text-[#F5A623]" />
-                          <span className="font-medium text-sm">
-                            {bar.bewertungen.toFixed(1)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 mt-2">
-                        {bar.hatLeinwand && (
-                          <Badge variant="secondary" className="text-xs bg-gray-100">
-                            Leinwand
-                          </Badge>
-                        )}
-                        {bar.biergarten && (
-                          <Badge variant="secondary" className="text-xs bg-gray-100">
-                            Biergarten
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+      {/* Featured Bars — nur anzeigen wenn echte Bars vorhanden */}
+      {bars.length > 0 && (
+        <section className="py-10 sm:py-14 bg-white">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl tracking-wider text-gradient-gold">
+                TOP BARS
+              </h2>
+              <Link href="/bars" className="hidden sm:block">
+                <Button variant="outline" size="sm" className="group">
+                  Alle Bars
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
               </Link>
-            ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {bars.map((bar, i) => (
+                <Link key={bar.id} href={`/bars/${bar.id}`}>
+                  <Card className="border card-premium bg-white h-full animate-fade-up" style={{ animationDelay: `${i * 100}ms` }}>
+                    <CardContent className="p-0">
+                      <div className="h-40 bg-gradient-to-br from-[#1A1A2E] to-[#242438] rounded-t-lg flex items-center justify-center pitch-pattern">
+                        <span className="font-[family-name:var(--font-display)] text-2xl text-white/20 tracking-wider">
+                          {bar.name}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-semibold text-[#1A1A2E]">
+                              {bar.name}
+                            </h3>
+                            <p className="flex items-center gap-1 text-sm text-gray-500">
+                              <MapPin className="h-3.5 w-3.5" />
+                              {bar.stadt}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-[#F5A623] text-[#F5A623]" />
+                            <span className="font-medium text-sm">
+                              {bar.bewertungen.toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 mt-2">
+                          {bar.hatLeinwand && (
+                            <Badge variant="secondary" className="text-xs bg-gray-100">
+                              Leinwand
+                            </Badge>
+                          )}
+                          {bar.biergarten && (
+                            <Badge variant="secondary" className="text-xs bg-gray-100">
+                              Biergarten
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA Section - kompakt */}
       <section className="py-14 bg-gradient-to-br from-[#00D26A] to-[#00B85C] text-white animate-gradient">
